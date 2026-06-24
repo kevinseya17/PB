@@ -1,35 +1,88 @@
-# Reporte de Contribución: Implementación de Módulo de Retos
+# Reporte de Contribución: HU 3.0 – Home y Validación de Sesión Activa
 
-**Desarrollador:** (Tu nombre)
-**Historias de Usuario Asignadas:** HU 12 (Mostrar reto aleatorio) y HU 9.0 (Cuadro de diálogo eliminar reto)
+**Desarrollador:** kevinseya17
+**Historias de Usuario Asignadas:** HU 3.0 (Home – Validación de sesión activa) / HU 4.0 (Cierre de sesión y Custom Toolbar)
 
-Este documento detalla el trabajo que realicé en el proyecto grupal, explicando paso a paso qué hice y cómo estructuré el código para cumplir estrictamente con cada uno de los Criterios de Aceptación (CA) solicitados para mis tareas.
-
----
-
-## 1. Historia de Usuario 12: Mostrar Reto Aleatorio
-
-**Objetivo Asignado:** Mostrar un cuadro de diálogo al jugador con un reto aleatorio y la imagen de un Pokémon, asegurando un diseño y comportamiento muy específicos.
-
-### ¿Qué hice y cómo cumplí los criterios?
-
-*   **CA 1 (Diseño del cuadro):** Construí el diseño visual utilizando el archivo XML `dialog_random_reto.xml`. Para lograr el estilo solicitado, creé un fondo negro degradado con transparencia (`bg_dialog_rounded.xml`) y apliqué bordes redondeados de color blanco.
-*   **CA 2 (Círculo con Pokémon aleatorio):** En la parte superior del diálogo, construí una vista circular con borde blanco y fondo negro (`bg_circle_pokemon.xml`). Para cumplir con el requerimiento de la imagen aleatoria, programé en `HomeFragment.kt` y `PokemonRepository.kt` una conexión HTTP a la API indicada (`pokedex.json`). El código descarga el JSON, selecciona un Pokémon al azar en segundo plano y muestra su imagen dentro de este círculo.
-*   **CA 3 (Texto del reto desde la BD):** Agregué un componente de texto configurado en color blanco y negrita (bold). Implementé la lógica en Kotlin para conectarme a la base de datos local (Room) mediante `dao.getRandomReto()`, lo que extrae un reto al azar y carga automáticamente su descripción en el cuadro de diálogo.
-*   **CA 4 (Botón Naranja "Cerrar"):** Ubiqué un botón en la parte inferior central del diálogo. Le apliqué un color naranja mediante el recurso `btn_orange_rounded.xml`. Ajusté las restricciones (constraints) y los márgenes para lograr el efecto exacto de la imagen: la parte superior del botón queda por dentro del diálogo y la inferior sobresale por fuera.
-*   **CA 5 y 6 (Comportamiento de cierre):** Programé el evento del clic del botón "Cerrar" para que oculte el diálogo (`dialog.dismiss()`) y reactive el progreso normal del juego. Para garantizar que el cuadro **no desaparezca** al hacer clic por fuera, configuré explícitamente la propiedad `dialog.setCancelable(false)` en la inicialización del cuadro.
+Este documento detalla el trabajo realizado en el proyecto grupal, explicando paso a paso qué se hizo y cómo se estructuró el código para cumplir estrictamente con cada uno de los Criterios de Aceptación (CA) y el QA Checklist definidos en Jira para las tareas asignadas.
 
 ---
 
-## 2. Historia de Usuario 9.0: Cuadro de Diálogo Eliminar Reto
+## 1. Historia de Usuario 3.0: Home – Validación de Sesión Activa
 
-**Objetivo Asignado:** Crear un cuadro de diálogo de confirmación para que el jugador pueda decidir de forma segura si elimina o no un reto específico de su lista.
+**Objetivo:** Mostrar la pantalla principal de la aplicación una vez el usuario se encuentre autenticado, validando el estado de la sesión activa al iniciar la app y redirigiendo correctamente según el estado de autenticación.
 
-### ¿Qué hice y cómo cumplí los criterios?
+### Criterios de Aceptación y cómo se cumplieron
 
-*   **CA 1 (Fondo blanco):** Creé el diseño `dialog_delete_reto.xml` asignándole un fondo de color completamente blanco y esquinas redondeadas (`bg_dialog_white_rounded.xml`).
-*   **CA 2 (Título superior):** Coloqué un texto en la parte superior centrado, de color negro y en formato negrita (bold), con la frase exacta exigida: *"¿Desea eliminar el siguiente reto?:"*.
-*   **CA 3 (Descripción del reto):** Implementé la lógica en `RetosFragment.kt` para que, cuando el usuario seleccione borrar un reto, el fragmento tome la descripción dinámica desde la base de datos y la envíe al cuadro de diálogo para ser mostrada en pantalla debajo del título.
-*   **CA 4 (Opción "NO"):** Creé un texto interactivo con la palabra "NO" en color naranja (`#FF6F00`). Le programé un evento de clic que, al ser presionado, simplemente cierra el cuadro de diálogo (`dialog.dismiss()`) y devuelve al jugador a la ventana de "Agregar y listar retos" intacta.
-*   **CA 5 (Opción "SI"):** Añadí el texto interactivo "SI", también en color naranja. Al hacer clic sobre él, el código se comunica con el `RetosViewModel` para ejecutar la función `eliminarReto(reto)`. Esto desencadena una instrucción `DELETE` en la base de datos local (SQLite/Room). Al finalizar el borrado, el diálogo se cierra y la lista de retos en pantalla se refresca inmediatamente sin mostrar ya ese reto.
-*   **CA 6 (Bloqueo de cierre externo):** Tal como lo hice en la otra HU, bloqueé el cierre accidental del cuadro utilizando `dialog.setCancelable(false)`. Con esto, aseguré que el diálogo solo pueda desaparecer de la pantalla si el usuario toma una decisión consciente (pulsando "NO" o "SI").
+*   **CA 1 – El usuario autenticado accede al Home:**
+    En `SplashFragment.kt`, después del tiempo de animación, se consulta `firebaseAuth.currentUser`. Si el resultado es distinto de `null`, significa que Firebase tiene una sesión activa y la navegación se dirige automáticamente a `HomeFragment` mediante la acción `action_splash_to_home`. Esta acción usa `popUpTo` con `inclusive = true` para eliminar el Splash del back stack, cumpliendo con el flujo esperado.
+
+*   **CA 2 – El sistema valida la sesión al iniciar la aplicación:**
+    La validación ocurre de forma transparente para el usuario durante los 5 segundos del Splash (`delay(5000L)`). Se inyecta `FirebaseAuth` mediante Hilt (`@Inject lateinit var firebaseAuth: FirebaseAuth`) para seguir el patrón de arquitectura limpia del proyecto. Firebase valida localmente el token de sesión persistido, sin necesidad de llamada a red en este paso.
+
+*   **CA 3 – Los usuarios sin sesión activa son redirigidos al Login:**
+    Si `firebaseAuth.currentUser` retorna `null` (no hay sesión), el `NavController` navega a `LoginFragment` mediante `action_splash_to_login`, también con `popUpTo` para evitar que el usuario pueda regresar al Splash con el botón atrás.
+
+*   **CA 4 – La interfaz carga correctamente:**
+    El `HomeFragment` utiliza View Binding (`FragmentHomeBinding`) para inflar y referenciar las vistas de forma segura y eficiente, siguiendo el patrón establecido en todo el proyecto. Se inicializa el audio de fondo, la animación del botón y los listeners del toolbar en `onViewCreated`.
+
+---
+
+## 2. Historia de Usuario 4.0: Cierre de Sesión y Custom Toolbar
+
+**Objetivo:** Implementar el cierre de sesión desde el Home y construir la nueva Custom Toolbar con todos sus íconos y acciones.
+
+### ¿Qué se hizo y cómo se cumplió?
+
+*   **Fondo negro en Login y Register (HU 2.0):**
+    Se modificó el atributo `android:background` de los layouts `fragment_login.xml` y `fragment_register.xml` a `#000000` para cumplir con el criterio visual de fondo negro.
+
+*   **Custom Toolbar (`CustomToolbarView`):**
+    Se creó el componente `CustomToolbarView.kt` como una `ConstraintLayout` personalizada que extiende la barra de herramientas nativa. La toolbar contiene 6 íconos distribuidos uniformemente con `layout_weight="1"` cada uno, usando `LinearLayout` para garantizar distribución proporcional:
+    - ⭐ `btnRate` – `ic_star` → Calificar la app
+    - 🔊 `btnAudio` – `ic_audio_on` / `ic_audio_off` → Toggle de audio de fondo
+    - 🎮 `btnInstructions` – `ic_gamepad` → Navegar a Instrucciones
+    - ➕ `btnChallenges` – `ic_add_circle` → Navegar a Retos
+    - 📤 `btnShare` – `ic_compartir` → Compartir la app
+    - 🚪 `btnLogout` – `ic_logout` → **Cerrar sesión (aporte principal)**
+
+*   **Cierre de sesión (`cerrarSesion`):**
+    En `HomeFragment.kt` se implementó la función `cerrarSesion()` que invoca `FirebaseAuth.getInstance().signOut()` para invalidar la sesión en Firebase y luego navega a `LoginFragment` mediante `action_home_to_login`. Esta acción usa `popUpTo` referenciando el nav graph completo (`@id/nav_graph`) con `inclusive = true`, lo que limpia completamente el back stack e impide que el usuario regrese al Home con el botón atrás sin autenticarse de nuevo.
+
+---
+
+## QA Checklist – Estado Final
+
+| Criterio | Estado |
+|----------|--------|
+| Se valida sesión activa al ingresar | ✅ `firebaseAuth.currentUser` en `SplashFragment` |
+| Usuario autenticado accede al Home | ✅ `action_splash_to_home` con popUpTo |
+| Usuario sin sesión es redirigido al Login | ✅ `action_splash_to_login` con popUpTo |
+| La interfaz carga correctamente | ✅ ViewBinding en `HomeFragment` |
+| No se presentan errores al recuperar sesión | ✅ Manejado por Firebase + `AuthViewModel` |
+| Flujo de Navegación de Cierre de Sesión | ✅ `cerrarSesion()` + `action_home_to_login` |
+| La Nueva Custom Toolbar (HU 3.0/4.0) | ✅ `CustomToolbarView` con 6 botones funcionales |
+
+---
+
+## Archivos modificados / creados
+
+| Archivo | Tipo de cambio |
+|---------|---------------|
+| `SplashFragment.kt` | Validación de sesión con `FirebaseAuth` inyectado |
+| `HomeFragment.kt` | Función `cerrarSesion()` y listeners del toolbar |
+| `CustomToolbarView.kt` | **[NUEVO]** Componente de toolbar personalizado |
+| `view_custom_toolbar.xml` | **[NUEVO]** Layout del toolbar con 6 íconos |
+| `ic_logout.xml` | **[NUEVO]** Ícono de cerrar sesión |
+| `ic_gamepad.xml` | **[NUEVO]** Ícono de instrucciones |
+| `ic_add_circle.xml` | **[NUEVO]** Ícono de retos |
+| `fragment_login.xml` | Fondo negro aplicado |
+| `fragment_register.xml` | Fondo negro aplicado |
+| `nav_graph.xml` | Acción `action_home_to_login` con popUpTo |
+
+---
+
+## Notas Técnicas
+
+- **Firebase Authentication:** La sesión se valida usando `FirebaseAuth` inyectado con Hilt (`@Inject`), respetando el patrón de arquitectura limpia del proyecto.
+- **Navigation Component:** Todas las navegaciones usan acciones del `nav_graph.xml` con `popUpTo` para manejo correcto del back stack.
+- **MVVM:** El `HomeFragment` delega la lógica de audio al `AudioViewModel` y la autenticación al `AuthViewModel`, sin lógica de negocio directa en la vista.
